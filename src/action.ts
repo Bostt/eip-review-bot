@@ -1,5 +1,9 @@
 import { performMergeAction, preMergeChanges } from "./merge.js";
 import processFiles from "./process.js";
+import {
+    FileRuleCommentData,
+    generateReviewerComment,
+} from "./reviewerComment.js";
 import { File, RuleProcessed } from "./types.js";
 import core from "@actions/core";
 import github from "@actions/github";
@@ -536,9 +540,7 @@ async function run() {
         // Generate comment
         let comment = "";
         if (!wholePassed) {
-            const filesToRules: {
-                [key: string]: { min: number; requesting: string[] }[];
-            } = {};
+            const filesToRules: { [key: string]: FileRuleCommentData[] } = {};
             for (const rule of result) {
                 core.error(
                     `Rule ${rule.name} requires ${
@@ -554,45 +556,13 @@ async function run() {
                     filesToRules[file].push({
                         min: rule.min,
                         requesting: rule.reviewers,
+                        mention_reviewers: rule.mention_reviewers ?? false,
                     });
                 } else {
                     core.setFailed("Rule annotation must contain a file");
                 }
             }
-
-            for (const file in filesToRules) {
-                comment = `${comment}\n\n### File \`${file}\`\n\n`;
-                const pastReviewers: string[] = [];
-                for (const rule of filesToRules[file]) {
-                    for (const rule2 of filesToRules[file]) {
-                        if (
-                            !pastReviewers.includes(
-                                rule.requesting.sort().join(","),
-                            ) &&
-                            rule.requesting.sort().join(",") ===
-                                rule2.requesting.sort().join(",")
-                        ) {
-                            pastReviewers.push(
-                                rule.requesting.sort().join(","),
-                            );
-                            if (rule2.min > rule.min) {
-                                comment = `${comment}Requires ${
-                                    rule2.min
-                                } more reviewers from ${rule.requesting
-                                    .map((requesting) => `@${requesting}`)
-                                    .join(", ")}\n`;
-                            } else {
-                                comment = `${comment}Requires ${
-                                    rule.min
-                                } more reviewers from ${rule.requesting
-                                    .map((requesting) => `@${requesting}`)
-                                    .join(", ")}\n`;
-                            }
-                            break;
-                        }
-                    }
-                }
-            }
+            comment = generateReviewerComment(filesToRules);
         } else {
             comment = "✅ All reviewers have approved.";
         }

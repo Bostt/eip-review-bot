@@ -40,6 +40,7 @@ export default async function (
                             reviewers: reviewers,
                             min: 1,
                             pr_approval: true,
+                            mention_reviewers: true,
                             annotation: {
                                 file: file.filename,
                             },

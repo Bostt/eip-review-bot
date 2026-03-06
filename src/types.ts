@@ -48,6 +48,11 @@ export declare type Rule = {
     pr_approval?: boolean | undefined;
 
     /**
+     * Whether reviewers should be @mentioned in PR comments (default: false)
+     */
+    mention_reviewers?: boolean | undefined;
+
+    /**
      * The labels to add to the PR if the rule is not satisfied, or remove if the rule is satisfied
      */
     labels?: string[] | undefined;
